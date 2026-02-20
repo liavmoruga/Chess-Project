@@ -2,9 +2,14 @@ import pygame
 import sys
 import threading
 import chess
-import settings
-from assets.assets import AssetManager
+
+import os
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 from logic.board import Board
+import ui.settings as settings 
+from ui.assets import AssetManager
 
 
 # MAIN GAME

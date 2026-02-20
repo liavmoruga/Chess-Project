@@ -1,5 +1,5 @@
 import pygame
-import settings
+import ui.settings as settings
 import os
 
 # ASSET MANAGER

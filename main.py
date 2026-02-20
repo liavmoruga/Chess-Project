@@ -1,7 +1,7 @@
 from bots.material_bot import MaterialBot
 from bots.random_bot import RandomBot
-from game import ChessGame
-from tournament import Tournament
+from ui.game import ChessGame
+from logic.tournament import Tournament
 
 
 if __name__ == "__main__":

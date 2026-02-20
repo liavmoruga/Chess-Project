@@ -9,9 +9,8 @@ FPS = 60
 
 # paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIR = os.path.join(BASE_DIR, "assets")
-IMAGE_DIR = os.path.join(ASSETS_DIR, "images")
-SOUND_DIR = os.path.join(ASSETS_DIR, "sounds")
+IMAGE_DIR = os.path.join(BASE_DIR, "images")
+SOUND_DIR = os.path.join(BASE_DIR, "sounds")
 
 # colors
 WHITE = (255, 255, 255)

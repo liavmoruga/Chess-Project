@@ -1,8 +1,12 @@
 import time
 import concurrent.futures
 import chess
-from logic.board import Board
+import os
+import sys
 import chess.pgn
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from logic.board import Board
 
 def play_game(bot1, bot2, bot1_white):
     board = Board()
