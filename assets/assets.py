@@ -1,6 +1,6 @@
 import pygame
-import os
 import settings
+import os
 
 # ASSET MANAGER
 

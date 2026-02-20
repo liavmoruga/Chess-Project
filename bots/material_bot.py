@@ -1,63 +1,11 @@
-import random
-import time
 import chess
+import os
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+from logic.agent import Agent
 
-# AGENT INTERFACE
-
-class Agent:
-    def __init__(self):
-        self.color = None
-
-    def set_color(self, color):
-        self.color = color
-
-    def get_move(self, board_obj):
-        # return ((start_row, start_col), (end_row, end_col)) or None
-        raise NotImplementedError
-
-
-
-
-
-
-
-
-
-
-
-
-
-# BOTS
-
-class RandomBot(Agent):
-    def __init__(self, wait_time):
-        super().__init__()
-        self.wait_time = wait_time
-
-    def get_move(self, board_obj):
-        legal_moves = list(board_obj.engine.legal_moves)
-        
-        if not legal_moves:
-            return None 
-            
-        move = random.choice(legal_moves)
-        
-        sr = 7 - chess.square_rank(move.from_square)
-        sc = chess.square_file(move.from_square)
-        er = 7 - chess.square_rank(move.to_square)
-        ec = chess.square_file(move.to_square)
-        
-        time.sleep(self.wait_time)
-        return (sr, sc), (er, ec)
-    
-
-
-
-
-
-
-
-class MinimaxBot(Agent):
+class MaterialBot(Agent):
     def __init__(self, depth):
         super().__init__()
         self.depth = depth
@@ -80,20 +28,24 @@ class MinimaxBot(Agent):
         if not legal_moves:
             return None
 
-        # Loop through root moves
+        alpha = -99999
+        beta = 99999
+
         for move in legal_moves:
             board.push(move)
-            value = self.minimax(board, self.depth - 1, not (self.color == chess.WHITE))
+            value = self.minimax(board, self.depth - 1, alpha, beta, not (self.color == chess.WHITE))
             board.pop()
             
             if self.color == chess.WHITE:
                 if value > best_value:
                     best_value = value
                     best_move = move
+                alpha = max(alpha, best_value)
             else:
                 if value < best_value:
                     best_value = value
                     best_move = move
+                beta = min(beta, best_value)
         
         if best_move:
             sr = 7 - chess.square_rank(best_move.from_square)
@@ -105,43 +57,55 @@ class MinimaxBot(Agent):
         return None
 
     def evaluate_board(self, board):
-        if board.is_checkmate():
-            if board.turn == chess.WHITE:
-                return -9999
-            else:
-                return 9999
-        
-        if board.is_game_over():
-            return 0
-
+        # fast evaluation using bitboards instead of looping 64 squares
         score = 0
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece:
-                value = self.piece_values.get(piece.piece_type, 0)
-                if piece.color == chess.WHITE:
-                    score += value
-                else:
-                    score -= value
+        for piece_type, value in self.piece_values.items():
+            if piece_type == chess.KING:
+                continue
+            
+            score += len(board.pieces(piece_type, chess.WHITE)) * value
+            score -= len(board.pieces(piece_type, chess.BLACK)) * value
+            
         return score
 
-    def minimax(self, board, depth, search_max):
-        if depth <= 0 or board.is_game_over():
+    def minimax(self, board, depth, alpha, beta, search_max):
+        if depth <= 0:
             return self.evaluate_board(board)
+
+        has_moves = False
 
         if search_max:
             max_value = -99999
             for move in board.legal_moves:
+                has_moves = True
                 board.push(move)
-                value = self.minimax(board, depth - 1, False)
+                value = self.minimax(board, depth - 1, alpha, beta, False)
                 board.pop()
+                
                 max_value = max(max_value, value)
+                alpha = max(alpha, value)
+                
+                if beta <= alpha:
+                    break
+            
+            if not has_moves:
+                return -9999 if board.is_check() else 0
             return max_value
+            
         else:
             min_value = 99999
             for move in board.legal_moves:
+                has_moves = True
                 board.push(move)
-                value = self.minimax(board, depth - 1, True)
+                value = self.minimax(board, depth - 1, alpha, beta, True)
                 board.pop()
+                
                 min_value = min(min_value, value)
+                beta = min(beta, value)
+                
+                if beta <= alpha:
+                    break
+            
+            if not has_moves:
+                return 9999 if board.is_check() else 0
             return min_value

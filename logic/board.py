@@ -1,5 +1,6 @@
 import chess
 
+
 # BOARD LOGIC
 
 class Board:
