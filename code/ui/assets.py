@@ -12,8 +12,11 @@ class AssetManager:
         self.placeholder_font = None
 
     def load_content(self):
-        # sounds
-        sound_files = {'move': 'move.ogg', 'capture': 'capture.ogg'}
+        sound_files = {
+            'move': 'move.ogg', 
+            'capture': 'capture.ogg',
+            'checkmate': 'checkmate.ogg'
+        }
         for name, filename in sound_files.items():
             path = os.path.join(settings.SOUND_DIR, filename)
             if os.path.exists(path):

@@ -1,8 +1,4 @@
 import chess
-import os
-import sys
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
 from logic.agent import Agent
 
 class MaterialBot(Agent):
@@ -27,6 +23,7 @@ class MaterialBot(Agent):
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return None
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
 
         alpha = -99999
         beta = 99999
@@ -73,10 +70,13 @@ class MaterialBot(Agent):
             return self.evaluate_board(board)
 
         has_moves = False
+        
+        legal_moves = list(board.legal_moves)
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
 
         if search_max:
             max_value = -99999
-            for move in board.legal_moves:
+            for move in legal_moves:
                 has_moves = True
                 board.push(move)
                 value = self.minimax(board, depth - 1, alpha, beta, False)

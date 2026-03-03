@@ -8,9 +8,9 @@ HEIGHT = 640
 FPS = 60
 
 # paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGE_DIR = os.path.join(BASE_DIR, "images")
-SOUND_DIR = os.path.join(BASE_DIR, "sounds")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
+SOUND_DIR = os.path.join(BASE_DIR, "assets", "sounds")
 
 # colors
 WHITE = (255, 255, 255)

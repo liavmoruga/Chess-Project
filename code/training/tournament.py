@@ -1,11 +1,6 @@
 import time
 import concurrent.futures
 import chess
-import os
-import sys
-import chess.pgn
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
 from logic.board import Board
 
 def play_game(bot1, bot2, bot1_white):
@@ -27,16 +22,10 @@ def play_game(bot1, bot2, bot1_white):
             break
         
         board.move_piece(move[0], move[1])
-        
-    result = board.engine.result()
-
-    pgn = chess.pgn.Game.from_board(board.engine)
-    pgn.headers["White"] = white_bot.__class__.__name__
-    pgn.headers["Black"] = black_bot.__class__.__name__
-    pgn.headers["Result"] = result
-    pgn = str(pgn)
     
     # in the chess library: 1-0 = white wins, 0-1 = black wins, 1/2-1/2 = draw
+    result = board.engine.result()
+    pgn = board.get_history()
     if result == '1-0':
         return (1.0, 0.0, pgn) if bot1_white else (0.0, 1.0, pgn)
     elif result == '0-1':
@@ -45,11 +34,11 @@ def play_game(bot1, bot2, bot1_white):
         return (0.5, 0.5, pgn)
 
 class Tournament:
-    def __init__(self, bot1, bot2, bot1_name, bot2_name, amount):
+    def __init__(self, bot1, bot2, amount):
         self.bot1 = bot1
         self.bot2 = bot2
-        self.bot1_name = bot1_name
-        self.bot2_name = bot2_name
+        self.bot1_name = bot1.__class__.__name__
+        self.bot2_name = bot2.__class__.__name__
         self.amount = amount
         
     def run(self):

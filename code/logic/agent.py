@@ -1,8 +1,3 @@
-import random
-import chess
-import time
-
-
 # AGENT INTERFACE
 
 class Agent:

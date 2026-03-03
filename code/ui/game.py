@@ -1,12 +1,6 @@
 import pygame
-import sys
 import threading
 import chess
-
-import os
-import sys
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
 from logic.board import Board
 import ui.settings as settings 
 from ui.assets import AssetManager
@@ -134,7 +128,14 @@ class ChessGame:
 
     def _execute_move(self, start, end):
         is_capture = self.board.move_piece(start, end)
-        self.assets.play_sound('capture' if is_capture else 'move')
+        
+        if self.board.is_checkmate():
+            self.assets.play_sound('checkmate')
+        elif is_capture:
+            self.assets.play_sound('capture')
+        else:
+            self.assets.play_sound('move')
+            
         self._deselect()
 
     def _run_agent_move(self, agent):
@@ -147,7 +148,8 @@ class ChessGame:
             self.agent_move_result = None
 
     def run(self):
-        while True:
+        running = True
+        while running:
             # check turn
             is_white = self.board.is_turn
             current_agent = self.white_agent if is_white else self.black_agent
@@ -155,13 +157,13 @@ class ChessGame:
             # event loop
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    running = False # Stop the loop instead of killing the program
                 elif event.type == pygame.VIDEORESIZE:
                     self._recalculate_layout(event.w, event.h)
                     self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_f: self.flip_view = not self.flip_view
+                    if event.key == pygame.K_f: 
+                        self.flip_view = not self.flip_view
                 
                 # human input
                 # only allow if it's human turn (agent is None) and not waiting for thread
@@ -195,6 +197,10 @@ class ChessGame:
             
             pygame.display.flip()
             self.clock.tick(settings.FPS)
+
+        # Once the loop breaks (window closed), quit pygame and return the history
+        pygame.quit()
+        return self.board.get_history()
 
     def _draw_board(self):
         for r in range(8):
@@ -259,6 +265,7 @@ class ChessGame:
     def _draw_pieces(self):
         mx, my = pygame.mouse.get_pos()
         is_checkmate = self.board.is_checkmate()
+        is_draw = self.board.is_draw() # Fetch draw status
         
         for r in range(8):
             for c in range(8):
@@ -273,8 +280,9 @@ class ChessGame:
                     
                     img = self.assets.get_image(piece)
                     
-                    # rotate king if checkmate
-                    if is_checkmate and piece.lower() == 'k' and self.board.is_piece_turn(piece):
+                    # Rotate current king if checkmate, OR rotate BOTH kings if draw
+                    if (is_checkmate and piece.lower() == 'k' and self.board.is_piece_turn(piece)) or \
+                       (is_draw and piece.lower() == 'k'):
                         img = pygame.transform.rotate(img, 90)
                         new_rect = img.get_rect(center=(x + self.sq_size//2, y + self.sq_size//2))
                         self.screen.blit(img, new_rect)
