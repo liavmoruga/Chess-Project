@@ -198,9 +198,7 @@ class ChessGame:
             pygame.display.flip()
             self.clock.tick(settings.FPS)
 
-        # Once the loop breaks (window closed), quit pygame and return the history
         pygame.quit()
-        return self.board.get_history()
 
     def _draw_board(self):
         for r in range(8):

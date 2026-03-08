@@ -1,3 +1,6 @@
+montecarlo.pkl
+montecarlo_model.keras
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

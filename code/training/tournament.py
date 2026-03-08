@@ -1,5 +1,6 @@
 import time
 import concurrent.futures
+import multiprocessing
 import chess
 from logic.board import Board
 
@@ -12,6 +13,8 @@ def play_game(bot1, bot2, bot1_white):
     white_bot.set_color(chess.WHITE)
     black_bot.set_color(chess.BLACK)
     
+    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] # List to track board states for this specific game
+    
     while not board.is_game_over():
         if board.is_turn:
             move = white_bot.get_move(board)
@@ -22,16 +25,29 @@ def play_game(bot1, bot2, bot1_white):
             break
         
         board.move_piece(move[0], move[1])
+        # Save the FEN instantly after the move is made
+        game_fens.append(board.engine.fen())
     
     # in the chess library: 1-0 = white wins, 0-1 = black wins, 1/2-1/2 = draw
     result = board.engine.result()
-    pgn = board.get_history()
+    
     if result == '1-0':
-        return (1.0, 0.0, pgn) if bot1_white else (0.0, 1.0, pgn)
+        score = 1
     elif result == '0-1':
-        return (0.0, 1.0, pgn) if bot1_white else (1.0, 0.0, pgn)
+        score = -1
     else:
-        return (0.5, 0.5, pgn)
+        score = 0
+        
+    if result == '1-0':
+        return (1.0, 0.0, game_fens, score) if bot1_white else (0.0, 1.0, game_fens, score)
+    elif result == '0-1':
+        return (0.0, 1.0, game_fens, score) if bot1_white else (1.0, 0.0, game_fens, score)
+    else:
+        return (0.5, 0.5, game_fens, score)
+
+def play_game_wrapper(args):
+    b1, b2, is_white = args
+    return play_game(b1, b2, is_white)
 
 class Tournament:
     def __init__(self, bot1, bot2, amount):
@@ -40,18 +56,15 @@ class Tournament:
         self.bot1_name = bot1.__class__.__name__
         self.bot2_name = bot2.__class__.__name__
         self.amount = amount
+        self.montecarlo = {}
         
-    def run(self):
-        print(f"Starting Tournament: {self.bot1_name} vs {self.bot2_name}")
-        print(f"Total Games: {self.amount}")
-        
+    def run(self, record_montecarlo=False):
         bot1_score = 0.0
         bot2_score = 0.0
         bot1_wins = 0
         bot2_wins = 0
         draws = 0
         completed_games = 0
-        history = []
         
         games_config = []
         for i in range(self.amount):
@@ -59,17 +72,20 @@ class Tournament:
             games_config.append((self.bot1, self.bot2, bot1_is_white))
             
         start_time = time.time()
-        self._print_progress(0, bot1_score, bot2_score, draws)
+        num_cores = multiprocessing.cpu_count()
         
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            futures = [executor.submit(play_game, b1, b2, is_white) for b1, b2, is_white in games_config]
-            
-            for future in concurrent.futures.as_completed(futures):
-                score1, score2, pgn = future.result()
+        # temporary dictionary
+        raw_dict = {} 
+        
+        with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
+            chunk_size = 500 if self.amount > 10000 else 50
+
+            results = executor.map(play_game_wrapper, games_config, chunksize=chunk_size)
+            for score1, score2, game_fens, fen_score in results:
+
                 bot1_score += score1
                 bot2_score += score2
                 
-                # Track actual wins for the results bar
                 if score1 == 1.0:
                     bot1_wins += 1
                 elif score2 == 1.0:
@@ -78,25 +94,24 @@ class Tournament:
                     draws += 1
                         
                 completed_games += 1
-                history.append(pgn)
+                
+                if record_montecarlo:
+                    for fen in game_fens:
+                        if fen not in raw_dict:
+                            raw_dict[fen] = [0, 0]
+                        raw_dict[fen][0] += fen_score
+                        raw_dict[fen][1] += 1
+                
                 self._print_progress(completed_games, bot1_score, bot2_score, draws)
 
-        print()
-        print()
-        print()
-        print("=" * 50)
-        print("RESULTS:")
-        print()
-
-        print(f"Time taken: {time.time() - start_time:.2f} seconds")
-        print()
-
+        print("\n\n\n" + "=" * 50)
+        print("RESULTS:\n")
+        print(f"Time taken: {time.time() - start_time:.2f} seconds\n")
+        
         self._print_results_bar(bot1_wins, bot2_wins, draws)
         print()
-
         print(f"{self.bot1_name} score: {bot1_score}")
-        print(f"{self.bot2_name} score: {bot2_score}")
-        print()
+        print(f"{self.bot2_name} score: {bot2_score}\n")
 
         if bot1_score > bot2_score:
             print(f"WINNER: {self.bot1_name}!")
@@ -106,8 +121,20 @@ class Tournament:
             print("WINNER: Tie!")
         print("=" * 50)
 
-        return history
+        if record_montecarlo:
+            print("Calculating averages")
+            for fen, (total_score, count) in raw_dict.items():
+                self.montecarlo[fen] = (total_score / count, count)
+            return self.montecarlo
         
+
+
+
+
+
+
+
+
 
     def _print_progress(self, completed, score1, score2, draws):
         if self.amount == 0:
@@ -116,20 +143,14 @@ class Tournament:
         length = 30
         filled_length = int(length * completed // self.amount)
         bar = '█' * filled_length + '-' * (length - filled_length)
-        print(f"\rProgress: |{bar}| {percent:.2f}% | {self.bot1_name}: {score1} | {self.bot2_name}: {score2} | Draws: {draws} |", end="", flush=True)
+        print(f"\rProgress: |{bar}| {percent:.2f}% | {self.bot1_name}: {score1} | Draws: {draws} | {self.bot2_name}: {score2} |", end="", flush=True)
 
     def _print_results_bar(self, bot1_wins, bot2_wins, draws):
         bar_length = 50
-        
         b1_len = int((bot1_wins / self.amount) * bar_length)
         d_len = int((draws / self.amount) * bar_length)
         b2_len = bar_length - b1_len - d_len 
-        
-        b1_char = '█'
-        d_char = '▒'
-        b2_char = '░'
-        
+        b1_char, d_char, b2_char = '█', '▒', '░'
         bar = (b1_char * b1_len) + (d_char * d_len) + (b2_char * b2_len)
-        
         print(f"|{bar}|")
         print(f"{b1_char} {self.bot1_name} wins: {bot1_wins} | {d_char} Draws: {draws} | {b2_char} {self.bot2_name} wins: {bot2_wins}")

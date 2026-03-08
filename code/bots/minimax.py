@@ -1,18 +1,11 @@
 import chess
 from logic.agent import Agent
 
-class MaterialBot(Agent):
-    def __init__(self, depth):
+class MinimaxBot(Agent):
+    def __init__(self, depth, evaluation_function):
         super().__init__()
         self.depth = depth
-        self.piece_values = {
-            chess.PAWN: 1,
-            chess.KNIGHT: 3,
-            chess.BISHOP: 3,
-            chess.ROOK: 5,
-            chess.QUEEN: 9,
-            chess.KING: 0
-        }
+        self.evaluation_function = evaluation_function
 
     def get_move(self, board_obj):
         board = board_obj.engine.copy()
@@ -53,21 +46,9 @@ class MaterialBot(Agent):
             
         return None
 
-    def evaluate_board(self, board):
-        # fast evaluation using bitboards instead of looping 64 squares
-        score = 0
-        for piece_type, value in self.piece_values.items():
-            if piece_type == chess.KING:
-                continue
-            
-            score += len(board.pieces(piece_type, chess.WHITE)) * value
-            score -= len(board.pieces(piece_type, chess.BLACK)) * value
-            
-        return score
-
     def minimax(self, board, depth, alpha, beta, search_max):
         if depth <= 0:
-            return self.evaluate_board(board)
+            return self.evaluation_function(board)
 
         has_moves = False
         
@@ -94,7 +75,7 @@ class MaterialBot(Agent):
             
         else:
             min_value = 99999
-            for move in board.legal_moves:
+            for move in legal_moves:
                 has_moves = True
                 board.push(move)
                 value = self.minimax(board, depth - 1, alpha, beta, True)
@@ -109,3 +90,30 @@ class MaterialBot(Agent):
             if not has_moves:
                 return 9999 if board.is_check() else 0
             return min_value
+
+
+
+
+def evaluate(board):
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9
+    }
+    
+    score = 0
+    # Fast evaluation using python-chess bitboards
+    for piece_type, value in piece_values.items():
+        # Add points for White's pieces
+        score += len(board.pieces(piece_type, chess.WHITE)) * value
+        
+        # Subtract points for Black's pieces
+        score -= len(board.pieces(piece_type, chess.BLACK)) * value
+        
+    return score
+
+class MaterialBot(MinimaxBot):
+    def __init__(self, depth):
+        super().__init__(depth, evaluate)
