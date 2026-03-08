@@ -1,11 +1,30 @@
 import chess
 from logic.agent import Agent
 
-class MinimaxBot(Agent):
-    def __init__(self, depth, evaluation_function):
+class MaterialBot(Agent):
+    def __init__(self, depth):
         super().__init__()
         self.depth = depth
-        self.evaluation_function = evaluation_function
+
+    def evaluate(self, board):
+        piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9
+        }
+        
+        score = 0
+        # Fast evaluation using python-chess bitboards
+        for piece_type, value in piece_values.items():
+            # Add points for White's pieces
+            score += len(board.pieces(piece_type, chess.WHITE)) * value
+            
+            # Subtract points for Black's pieces
+            score -= len(board.pieces(piece_type, chess.BLACK)) * value
+            
+        return score
 
     def get_move(self, board_obj):
         board = board_obj.engine.copy()
@@ -48,7 +67,7 @@ class MinimaxBot(Agent):
 
     def minimax(self, board, depth, alpha, beta, search_max):
         if depth <= 0:
-            return self.evaluation_function(board)
+            return self.evaluate(board)
 
         has_moves = False
         
@@ -94,26 +113,3 @@ class MinimaxBot(Agent):
 
 
 
-def evaluate(board):
-    piece_values = {
-        chess.PAWN: 1,
-        chess.KNIGHT: 3,
-        chess.BISHOP: 3,
-        chess.ROOK: 5,
-        chess.QUEEN: 9
-    }
-    
-    score = 0
-    # Fast evaluation using python-chess bitboards
-    for piece_type, value in piece_values.items():
-        # Add points for White's pieces
-        score += len(board.pieces(piece_type, chess.WHITE)) * value
-        
-        # Subtract points for Black's pieces
-        score -= len(board.pieces(piece_type, chess.BLACK)) * value
-        
-    return score
-
-class MaterialBot(MinimaxBot):
-    def __init__(self, depth):
-        super().__init__(depth, evaluate)

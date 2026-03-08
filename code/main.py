@@ -1,19 +1,25 @@
-from bots.minimax import MaterialBot
+from bots.material_bot import MaterialBot
 from bots.random_bot import RandomBot
 from ui.game import ChessGame
-from training.tournament import Tournament
-from training.montecarlo import train_and_save_model
-import pickle
-from bots.montecarlo_bot import MonteCarloBot
+from logic.tournament import Tournament
+
+
+
+def main(num):
+    if num == 1:
+        g = ChessGame(white_agent=None, black_agent=MaterialBot(5))
+        g.run()
+
+    elif num == 2:
+        t = Tournament(MaterialBot(2), RandomBot(0), 100)
+        t.run(False)
+
+    elif num == 3:
+        t = Tournament(RandomBot(0), RandomBot(0), 100000)
+        t.run(True)
+        mt_dict = t.mt_dict
+
+
 
 if __name__ == "__main__":
-    # g = ChessGame(white_agent=None, black_agent=MonteCarloBot())
-    # g.run()
-
-    t = Tournament(MonteCarloBot(), RandomBot(0), 100)
-    mt = t.run(False)
-
-    # with open("montecarlo.pkl", 'wb') as file:
-    #     pickle.dump(mt, file)
-
-    #train_and_save_model()
+    main(2)

@@ -4,7 +4,7 @@ import multiprocessing
 import chess
 from logic.board import Board
 
-def play_game(bot1, bot2, bot1_white):
+def play_game(bot1, bot2, bot1_white, record_moves=False):
     board = Board()
 
     white_bot = bot1 if bot1_white else bot2
@@ -13,7 +13,7 @@ def play_game(bot1, bot2, bot1_white):
     white_bot.set_color(chess.WHITE)
     black_bot.set_color(chess.BLACK)
     
-    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] # List to track board states for this specific game
+    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if record_moves else []
     
     while not board.is_game_over():
         if board.is_turn:
@@ -25,29 +25,22 @@ def play_game(bot1, bot2, bot1_white):
             break
         
         board.move_piece(move[0], move[1])
-        # Save the FEN instantly after the move is made
-        game_fens.append(board.engine.fen())
+        if record_moves:
+            game_fens.append(board.engine.fen())
     
     # in the chess library: 1-0 = white wins, 0-1 = black wins, 1/2-1/2 = draw
     result = board.engine.result()
     
     if result == '1-0':
-        score = 1
+        return (1.0, 0.0, game_fens, 1) if bot1_white else (0.0, 1.0, game_fens, 1)
     elif result == '0-1':
-        score = -1
+        return (0.0, 1.0, game_fens, -1) if bot1_white else (1.0, 0.0, game_fens, -1)
     else:
-        score = 0
-        
-    if result == '1-0':
-        return (1.0, 0.0, game_fens, score) if bot1_white else (0.0, 1.0, game_fens, score)
-    elif result == '0-1':
-        return (0.0, 1.0, game_fens, score) if bot1_white else (1.0, 0.0, game_fens, score)
-    else:
-        return (0.5, 0.5, game_fens, score)
+        return (0.5, 0.5, game_fens, 0)
 
 def play_game_wrapper(args):
-    b1, b2, is_white = args
-    return play_game(b1, b2, is_white)
+    b1, b2, is_white, record_moves = args
+    return play_game(b1, b2, is_white, record_moves)
 
 class Tournament:
     def __init__(self, bot1, bot2, amount):
@@ -56,9 +49,9 @@ class Tournament:
         self.bot1_name = bot1.__class__.__name__
         self.bot2_name = bot2.__class__.__name__
         self.amount = amount
-        self.montecarlo = {}
+        self.mt_dict = {}
         
-    def run(self, record_montecarlo=False):
+    def run(self, record_mt_dict=False):
         bot1_score = 0.0
         bot2_score = 0.0
         bot1_wins = 0
@@ -69,20 +62,20 @@ class Tournament:
         games_config = []
         for i in range(self.amount):
             bot1_is_white = (i < self.amount / 2)
-            games_config.append((self.bot1, self.bot2, bot1_is_white))
+            games_config.append((self.bot1, self.bot2, bot1_is_white, record_mt_dict))
             
         start_time = time.time()
         num_cores = multiprocessing.cpu_count()
         
         # temporary dictionary
-        raw_dict = {} 
+        temp_dict = {} 
         
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
-            chunk_size = 500 if self.amount > 10000 else 50
-
-            results = executor.map(play_game_wrapper, games_config, chunksize=chunk_size)
-            for score1, score2, game_fens, fen_score in results:
-
+            future_to_game = {executor.submit(play_game_wrapper, config): config for config in games_config}
+            
+            for future in concurrent.futures.as_completed(future_to_game):
+                score1, score2, game_fens, fen_score = future.result()
+                
                 bot1_score += score1
                 bot2_score += score2
                 
@@ -95,12 +88,12 @@ class Tournament:
                         
                 completed_games += 1
                 
-                if record_montecarlo:
+                if record_mt_dict:
                     for fen in game_fens:
-                        if fen not in raw_dict:
-                            raw_dict[fen] = [0, 0]
-                        raw_dict[fen][0] += fen_score
-                        raw_dict[fen][1] += 1
+                        if fen not in temp_dict:
+                            temp_dict[fen] = [0, 0]
+                        temp_dict[fen][0] += fen_score
+                        temp_dict[fen][1] += 1
                 
                 self._print_progress(completed_games, bot1_score, bot2_score, draws)
 
@@ -121,11 +114,9 @@ class Tournament:
             print("WINNER: Tie!")
         print("=" * 50)
 
-        if record_montecarlo:
-            print("Calculating averages")
-            for fen, (total_score, count) in raw_dict.items():
-                self.montecarlo[fen] = (total_score / count, count)
-            return self.montecarlo
+        if record_mt_dict:
+            for fen, (total_score, count) in temp_dict.items():
+                self.mt_dict[fen] = (total_score / count, count)
         
 
 
