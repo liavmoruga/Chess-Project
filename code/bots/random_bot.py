@@ -1,7 +1,7 @@
 import chess
 import random
 import time
-from logic.agent import Agent
+from code.logic.agent import Agent
 
 class RandomBot(Agent):
     def __init__(self, wait_time):

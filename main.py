@@ -1,7 +1,7 @@
-from bots.material_bot import MaterialBot
-from bots.random_bot import RandomBot
-from ui.game import ChessGame
-from logic.tournament import Tournament
+from code.bots.material_bot import MaterialBot
+from code.bots.random_bot import RandomBot
+from code.ui.game import ChessGame
+from code.logic.tournament import Tournament
 
 
 

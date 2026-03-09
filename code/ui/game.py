@@ -1,9 +1,9 @@
 import pygame
 import threading
 import chess
-from logic.board import Board
-import ui.settings as settings 
-from ui.assets import AssetManager
+from code.logic.board import Board
+import code.ui.settings as settings 
+from code.ui.assets import AssetManager
 
 
 # MAIN GAME

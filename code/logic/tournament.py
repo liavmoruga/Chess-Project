@@ -2,7 +2,7 @@ import time
 import concurrent.futures
 import multiprocessing
 import chess
-from logic.board import Board
+from code.logic.board import Board
 
 def play_game(bot1, bot2, bot1_white, record_moves=False):
     board = Board()

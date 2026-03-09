@@ -1,5 +1,5 @@
 import chess
-from logic.agent import Agent
+from code.logic.agent import Agent
 
 class MaterialBot(Agent):
     def __init__(self, depth):
