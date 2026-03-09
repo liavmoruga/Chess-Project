@@ -1,11 +1,7 @@
 import chess
 import random
 import time
-import os
-import sys
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
-from logic.agent import Agent
+from code.logic.agent import Agent
 
 class RandomBot(Agent):
     def __init__(self, wait_time):

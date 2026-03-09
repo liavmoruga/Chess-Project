@@ -1,17 +1,25 @@
-from bots.material_bot import MaterialBot
-from bots.random_bot import RandomBot
-from ui.game import ChessGame
-from logic.tournament import Tournament
+from code.bots.material_bot import MaterialBot
+from code.bots.random_bot import RandomBot
+from code.ui.game import ChessGame
+from code.logic.tournament import Tournament
+
+
+
+def main(num):
+    if num == 1:
+        g = ChessGame(white_agent=None, black_agent=MaterialBot(5))
+        g.run()
+
+    elif num == 2:
+        t = Tournament(MaterialBot(2), RandomBot(0), 100)
+        t.run(False)
+
+    elif num == 3:
+        t = Tournament(RandomBot(0), RandomBot(0), 100000)
+        t.run(True)
+        mt_dict = t.mt_dict
+
 
 
 if __name__ == "__main__":
-    #game = ChessGame(white_agent=None, black_agent=MaterialBot(3))
-    #game.run()
-
-    tournament = Tournament(
-        bot1=MaterialBot(2),
-        bot2=RandomBot(0),
-        bot1_name="Material Bot",
-        bot2_name="Random Bot",
-        amount=100)
-    histroy = tournament.run()
+    main(2)

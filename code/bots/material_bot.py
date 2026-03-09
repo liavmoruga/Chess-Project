@@ -1,22 +1,30 @@
 import chess
-import os
-import sys
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.append(parent_dir)
-from logic.agent import Agent
+from code.logic.agent import Agent
 
 class MaterialBot(Agent):
     def __init__(self, depth):
         super().__init__()
         self.depth = depth
-        self.piece_values = {
+
+    def evaluate(self, board):
+        piece_values = {
             chess.PAWN: 1,
             chess.KNIGHT: 3,
             chess.BISHOP: 3,
             chess.ROOK: 5,
-            chess.QUEEN: 9,
-            chess.KING: 0
+            chess.QUEEN: 9
         }
+        
+        score = 0
+        # Fast evaluation using python-chess bitboards
+        for piece_type, value in piece_values.items():
+            # Add points for White's pieces
+            score += len(board.pieces(piece_type, chess.WHITE)) * value
+            
+            # Subtract points for Black's pieces
+            score -= len(board.pieces(piece_type, chess.BLACK)) * value
+            
+        return score
 
     def get_move(self, board_obj):
         board = board_obj.engine.copy()
@@ -27,6 +35,7 @@ class MaterialBot(Agent):
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return None
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
 
         alpha = -99999
         beta = 99999
@@ -56,27 +65,18 @@ class MaterialBot(Agent):
             
         return None
 
-    def evaluate_board(self, board):
-        # fast evaluation using bitboards instead of looping 64 squares
-        score = 0
-        for piece_type, value in self.piece_values.items():
-            if piece_type == chess.KING:
-                continue
-            
-            score += len(board.pieces(piece_type, chess.WHITE)) * value
-            score -= len(board.pieces(piece_type, chess.BLACK)) * value
-            
-        return score
-
     def minimax(self, board, depth, alpha, beta, search_max):
         if depth <= 0:
-            return self.evaluate_board(board)
+            return self.evaluate(board)
 
         has_moves = False
+        
+        legal_moves = list(board.legal_moves)
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
 
         if search_max:
             max_value = -99999
-            for move in board.legal_moves:
+            for move in legal_moves:
                 has_moves = True
                 board.push(move)
                 value = self.minimax(board, depth - 1, alpha, beta, False)
@@ -94,7 +94,7 @@ class MaterialBot(Agent):
             
         else:
             min_value = 99999
-            for move in board.legal_moves:
+            for move in legal_moves:
                 has_moves = True
                 board.push(move)
                 value = self.minimax(board, depth - 1, alpha, beta, True)
@@ -109,3 +109,7 @@ class MaterialBot(Agent):
             if not has_moves:
                 return 9999 if board.is_check() else 0
             return min_value
+
+
+
+

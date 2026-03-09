@@ -8,9 +8,9 @@ HEIGHT = 640
 FPS = 60
 
 # paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGE_DIR = os.path.join(BASE_DIR, "images")
-SOUND_DIR = os.path.join(BASE_DIR, "sounds")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
+SOUND_DIR = os.path.join(BASE_DIR, "assets", "sounds")
 
 # colors
 WHITE = (255, 255, 255)
@@ -24,3 +24,5 @@ HINT_COLOR = (100, 109, 64, 128)
 SOURCE_COLOR = (206, 210, 107)
 DEST_COLOR = (170, 162, 58)
 CHECK_COLOR = (255, 0, 0)
+
+print(BASE_DIR)

@@ -1,5 +1,5 @@
 import chess
-
+import chess.pgn
 
 # BOARD LOGIC
 
@@ -47,6 +47,7 @@ class Board:
             is_capture = self.engine.is_capture(move_to_make)
             self.engine.push(move_to_make)
             self.last_move = (start, end)
+
             return is_capture
             
         return False
@@ -70,6 +71,9 @@ class Board:
 
     def is_checkmate(self):
         return self.engine.is_checkmate()
+    
+    def is_draw(self):
+        return self.engine.is_game_over() and not self.engine.is_checkmate()
 
     def get_king_pos(self):
         # find king of current turn
@@ -77,3 +81,6 @@ class Board:
         if king_sq is not None:
             return (7 - chess.square_rank(king_sq), chess.square_file(king_sq))
         return None
+    
+    def get_history(self):
+        return str(chess.pgn.Game.from_board(self.engine))
