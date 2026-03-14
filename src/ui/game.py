@@ -1,9 +1,31 @@
 import pygame
 import threading
 import chess
-from code.logic.board import Board
-import code.ui.settings as settings 
-from code.ui.assets import AssetManager
+from src.logic.board import Board
+from src.ui.assets import AssetManager
+
+
+
+# dimensions
+WIDTH = 640
+HEIGHT = 640
+FPS = 60
+
+# base colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BACKGROUND = (30, 30, 30)
+LIGHT_BROWN = (240, 217, 181)
+DARK_BROWN = (181, 136, 99)
+
+# more colors
+SELECTED_COLOR = (100, 109, 64)
+HINT_COLOR = (100, 109, 64, 128)
+SOURCE_COLOR = (206, 210, 107)
+DEST_COLOR = (170, 162, 58)
+CHECK_COLOR = (255, 0, 0)
+
+
 
 
 # MAIN GAME
@@ -14,7 +36,7 @@ class ChessGame:
         pygame.init()
         pygame.mixer.init()
         
-        self.screen = pygame.display.set_mode((settings.WIDTH, settings.HEIGHT), pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Chess Project - Liav Moruga")
         self.clock = pygame.time.Clock()
         
@@ -55,7 +77,7 @@ class ChessGame:
         self.board_y = 0
         self.coord_font = None
         
-        self._recalculate_layout(settings.WIDTH, settings.HEIGHT)
+        self._recalculate_layout(WIDTH, HEIGHT)
 
     def _recalculate_layout(self, w, h):
         min_dim = min(w, h)
@@ -190,13 +212,13 @@ class ChessGame:
                     self.agent_move_result = None
 
             # draw
-            self.screen.fill(settings.BACKGROUND)
+            self.screen.fill(BACKGROUND)
             self._draw_board()
             self._draw_hints()
             self._draw_pieces()
             
             pygame.display.flip()
-            self.clock.tick(settings.FPS)
+            self.clock.tick(FPS)
 
         pygame.quit()
 
@@ -209,26 +231,26 @@ class ChessGame:
                 y = self.board_y + dr * self.sq_size
                 
                 # tile colors
-                color = settings.LIGHT_BROWN if (r+c)%2==0 else settings.DARK_BROWN
+                color = LIGHT_BROWN if (r+c)%2==0 else DARK_BROWN
                 
                 # last move highlight
                 if self.board.last_move:
-                    if (r,c) == self.board.last_move[0]: color = settings.SOURCE_COLOR
-                    elif (r,c) == self.board.last_move[1]: color = settings.DEST_COLOR
+                    if (r,c) == self.board.last_move[0]: color = SOURCE_COLOR
+                    elif (r,c) == self.board.last_move[1]: color = DEST_COLOR
                 
                 # selection highlight
-                if self.selected_square == (r,c): color = settings.SELECTED_COLOR
+                if self.selected_square == (r,c): color = SELECTED_COLOR
                 
                 # check highlight
                 if self.board.is_in_check():
                     king_pos = self.board.get_king_pos()
                     if king_pos == (r, c):
-                        color = settings.CHECK_COLOR
+                        color = CHECK_COLOR
 
                 pygame.draw.rect(self.screen, color, (x, y, self.sq_size, self.sq_size))
                 
                 # coordinates
-                txt_color = settings.DARK_BROWN if (r+c)%2==0 else settings.LIGHT_BROWN
+                txt_color = DARK_BROWN if (r+c)%2==0 else LIGHT_BROWN
                 pad = int(self.sq_size * 0.03)
                 
                 if dc == 7: 
@@ -250,14 +272,14 @@ class ChessGame:
             
             if not target:
                 rad = int(self.sq_size * 0.125)
-                pygame.draw.circle(s, settings.HINT_COLOR, (self.sq_size//2, self.sq_size//2), rad)
+                pygame.draw.circle(s, HINT_COLOR, (self.sq_size//2, self.sq_size//2), rad)
             else:
                 tl = int(self.sq_size * 0.2)
                 w, h = self.sq_size, self.sq_size
-                pygame.draw.polygon(s, settings.HINT_COLOR, [(0,0), (tl,0), (0,tl)])
-                pygame.draw.polygon(s, settings.HINT_COLOR, [(w,0), (w-tl,0), (w,tl)])
-                pygame.draw.polygon(s, settings.HINT_COLOR, [(0,h), (0,h-tl), (tl,h)])
-                pygame.draw.polygon(s, settings.HINT_COLOR, [(w,h), (w-tl,h), (w,h-tl)])
+                pygame.draw.polygon(s, HINT_COLOR, [(0,0), (tl,0), (0,tl)])
+                pygame.draw.polygon(s, HINT_COLOR, [(w,0), (w-tl,0), (w,tl)])
+                pygame.draw.polygon(s, HINT_COLOR, [(0,h), (0,h-tl), (tl,h)])
+                pygame.draw.polygon(s, HINT_COLOR, [(w,h), (w-tl,h), (w,h-tl)])
             self.screen.blit(s, (x, y))
 
     def _draw_pieces(self):

@@ -2,9 +2,9 @@ import time
 import concurrent.futures
 import multiprocessing
 import chess
-from code.logic.board import Board
+from src.logic.board import Board
 
-def play_game(bot1, bot2, bot1_white, record_moves=False):
+def play_game(bot1, bot2, bot1_white, make_dict=False):
     board = Board()
 
     white_bot = bot1 if bot1_white else bot2
@@ -13,7 +13,7 @@ def play_game(bot1, bot2, bot1_white, record_moves=False):
     white_bot.set_color(chess.WHITE)
     black_bot.set_color(chess.BLACK)
     
-    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if record_moves else []
+    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if make_dict else []
     
     while not board.is_game_over():
         if board.is_turn:
@@ -25,7 +25,7 @@ def play_game(bot1, bot2, bot1_white, record_moves=False):
             break
         
         board.move_piece(move[0], move[1])
-        if record_moves:
+        if make_dict:
             game_fens.append(board.engine.fen())
     
     # in the chess library: 1-0 = white wins, 0-1 = black wins, 1/2-1/2 = draw
@@ -51,7 +51,7 @@ class Tournament:
         self.amount = amount
         self.mt_dict = {}
         
-    def run(self, record_mt_dict=False):
+    def run(self, make_dict=False):
         bot1_score = 0.0
         bot2_score = 0.0
         bot1_wins = 0
@@ -62,7 +62,7 @@ class Tournament:
         games_config = []
         for i in range(self.amount):
             bot1_is_white = (i < self.amount / 2)
-            games_config.append((self.bot1, self.bot2, bot1_is_white, record_mt_dict))
+            games_config.append((self.bot1, self.bot2, bot1_is_white, make_dict))
             
         start_time = time.time()
         num_cores = multiprocessing.cpu_count()
@@ -88,7 +88,7 @@ class Tournament:
                         
                 completed_games += 1
                 
-                if record_mt_dict:
+                if make_dict:
                     for fen in game_fens:
                         if fen not in temp_dict:
                             temp_dict[fen] = [0, 0]
@@ -114,7 +114,7 @@ class Tournament:
             print("WINNER: Tie!")
         print("=" * 50)
 
-        if record_mt_dict:
+        if make_dict:
             for fen, (total_score, count) in temp_dict.items():
                 self.mt_dict[fen] = (total_score / count, count)
         

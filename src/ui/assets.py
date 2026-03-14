@@ -1,6 +1,10 @@
 import pygame
-import code.ui.settings as settings
 import os
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+IMAGE_DIR = os.path.join(BASE_DIR, "assets", "images")
+SOUND_DIR = os.path.join(BASE_DIR, "assets", "sounds")
 
 # ASSET MANAGER
 
@@ -18,7 +22,7 @@ class AssetManager:
             'checkmate': 'checkmate.ogg'
         }
         for name, filename in sound_files.items():
-            path = os.path.join(settings.SOUND_DIR, filename)
+            path = os.path.join(SOUND_DIR, filename)
             if os.path.exists(path):
                 self.sounds[name] = pygame.mixer.Sound(path)
 
@@ -27,7 +31,7 @@ class AssetManager:
         for filename in pieces:
             # key example: 'P' for white pawn, 'p' for black pawn
             key = filename[1].upper() if filename.startswith('w') else filename[1]
-            path = os.path.join(settings.IMAGE_DIR, f"{filename}.png")
+            path = os.path.join(IMAGE_DIR, f"{filename}.png")
             if os.path.exists(path):
                 self.original_images[key] = pygame.image.load(path)
             else:
@@ -45,7 +49,7 @@ class AssetManager:
             else:
                 # generate text placeholder
                 s = pygame.Surface((sq_size, sq_size), pygame.SRCALPHA)
-                color = settings.BLACK if key.islower() else settings.WHITE
+                color = (0, 0, 0) if key.islower() else (1, 1, 1)
                 text = self.placeholder_font.render(key, True, color)
                 rect = text.get_rect(center=(sq_size//2, sq_size//2))
                 s.blit(text, rect)
