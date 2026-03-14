@@ -19,37 +19,22 @@ class Board:
         r, c = start_pos
         start_sq = chess.square(c, 7 - r)
         
-        moves = []
-        # get all legal moves for this square
+        moves = {}
         for move in self.engine.legal_moves:
             if move.from_square == start_sq:
-                # convert target square back to (row, col)
                 tr = 7 - chess.square_rank(move.to_square)
                 tc = chess.square_file(move.to_square)
-                moves.append((tr, tc))
+                moves[(tr, tc)] = move # Map the destination grid coord directly to the move object
         return moves
 
-    def move_piece(self, start, end):
-        sr, sc = start
-        er, ec = end
-        
-        start_sq = chess.square(sc, 7 - sr)
-        end_sq = chess.square(ec, 7 - er)
-        
-        # find the matching move object (handling promotion automatically to queen for simplicity)
-        move_to_make = None
-        for move in self.engine.legal_moves:
-            if move.from_square == start_sq and move.to_square == end_sq:
-                move_to_make = move
-                break
-        
-        if move_to_make:
-            is_capture = self.engine.is_capture(move_to_make)
-            self.engine.push(move_to_make)
-            self.last_move = (start, end)
+    def move_piece(self, move):
+        if move in self.engine.legal_moves:
+            is_capture = self.engine.is_capture(move)
+            self.engine.push(move)
+            
+            self.last_move = move
 
             return is_capture
-            
         return False
 
     def is_piece_turn(self, piece_symbol):

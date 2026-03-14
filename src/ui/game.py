@@ -61,7 +61,7 @@ class ChessGame:
         
         # state
         self.selected_square = None
-        self.valid_moves = []
+        self.valid_moves = {}
         self.is_dragging = False
         self.drag_piece_data = None
         self.clicked_selected = False
@@ -92,7 +92,7 @@ class ChessGame:
 
     def _deselect(self):
         self.selected_square = None
-        self.valid_moves = []
+        self.valid_moves = {}
         self.is_dragging = False
         self.drag_piece_data = None
         self.clicked_selected = False
@@ -120,7 +120,8 @@ class ChessGame:
 
         # click on valid move
         if coords in self.valid_moves:
-            self._execute_move(self.selected_square, coords)
+            move_to_make = self.valid_moves[coords]
+            self._execute_move(move_to_make)
             return
 
         # click on piece
@@ -142,14 +143,11 @@ class ChessGame:
         if self.is_dragging:
             coords = self._get_board_pos(pygame.mouse.get_pos())
             if coords and coords in self.valid_moves and coords != self.selected_square:
-                self._execute_move(self.selected_square, coords)
-            
-            self.is_dragging = False
-            self.drag_piece_data = None
-            if self.clicked_selected: self._deselect()
+                move_to_make = self.valid_moves[coords]
+                self._execute_move(move_to_make)
 
-    def _execute_move(self, start, end):
-        is_capture = self.board.move_piece(start, end)
+    def _execute_move(self, move):
+        is_capture = self.board.move_piece(move)
         
         if self.board.is_checkmate():
             self.assets.play_sound('checkmate')
@@ -162,12 +160,8 @@ class ChessGame:
 
     def _run_agent_move(self, agent):
         # runs in separate thread
-        try:
-            move = agent.get_move(self.board)
-            self.agent_move_result = move
-        except Exception as e:
-            print(f"agent error: {e}")
-            self.agent_move_result = None
+        move = agent.get_move(self.board)
+        self.agent_move_result = move
 
     def run(self):
         running = True
@@ -206,8 +200,8 @@ class ChessGame:
                 # check if done
                 if not self.agent_thread.is_alive():
                     if self.agent_move_result:
-                        start, end = self.agent_move_result
-                        self._execute_move(start, end)
+                        move = self.agent_move_result
+                        self._execute_move(move)
                     self.agent_thinking = False
                     self.agent_move_result = None
 
@@ -235,8 +229,13 @@ class ChessGame:
                 
                 # last move highlight
                 if self.board.last_move:
-                    if (r,c) == self.board.last_move[0]: color = SOURCE_COLOR
-                    elif (r,c) == self.board.last_move[1]: color = DEST_COLOR
+                    move = self.board.last_move
+                    sr = 7 - chess.square_rank(move.from_square)
+                    sc = chess.square_file(move.from_square)
+                    er = 7 - chess.square_rank(move.to_square)
+                    ec = chess.square_file(move.to_square)
+                    if (r, c) == (sr, sc): color = SOURCE_COLOR
+                    elif (r, c) == (er, ec): color = DEST_COLOR
                 
                 # selection highlight
                 if self.selected_square == (r,c): color = SELECTED_COLOR
