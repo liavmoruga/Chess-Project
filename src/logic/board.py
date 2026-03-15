@@ -8,10 +8,10 @@ class Board:
         self.engine = chess.Board()
         self.last_move = None
 
-    def get_piece_at(self, row, col):
+    def get_piece_at(self, pos):
         # convert (row, col) to chess square index
         # row 0 is rank 8, row 7 is rank 1
-        square = chess.square(col, 7 - row)
+        square = chess.square(pos[1], 7 - pos[0])
         piece = self.engine.piece_at(square)
         return piece.symbol() if piece else None
 
@@ -66,6 +66,3 @@ class Board:
         if king_sq is not None:
             return (7 - chess.square_rank(king_sq), chess.square_file(king_sq))
         return None
-    
-    def get_history(self):
-        return str(chess.pgn.Game.from_board(self.engine))

@@ -63,7 +63,7 @@ class ChessGame:
         self.selected_square = None
         self.valid_moves = {}
         self.is_dragging = False
-        self.drag_piece_data = None
+        self.drag_data = None
         self.clicked_selected = False
         
         # threading state
@@ -94,7 +94,7 @@ class ChessGame:
         self.selected_square = None
         self.valid_moves = {}
         self.is_dragging = False
-        self.drag_piece_data = None
+        self.drag_data = None
         self.clicked_selected = False
 
     def _get_board_pos(self, mouse_pos):
@@ -119,13 +119,13 @@ class ChessGame:
             return
 
         # click on valid move
-        if coords in self.valid_moves:
+        if coords in self.valid_moves and not self.is_dragging:
             move_to_make = self.valid_moves[coords]
             self._execute_move(move_to_make)
             return
 
         # click on piece
-        piece = self.board.get_piece_at(*coords)
+        piece = self.board.get_piece_at(coords)
         if self.board.is_piece_turn(piece):
             if self.selected_square == coords:
                 self.clicked_selected = True
@@ -135,16 +135,37 @@ class ChessGame:
             self.selected_square = coords
             self.valid_moves = self.board.get_valid_moves(coords)
             self.is_dragging = True
-            self.drag_piece_data = {'symbol': piece, 'pos': coords}
+            self.drag_data = {'symbol': piece, 'pos': coords}
         else:
             self._deselect()
 
     def _handle_release(self):
-        if self.is_dragging:
-            coords = self._get_board_pos(pygame.mouse.get_pos())
-            if coords and coords in self.valid_moves and coords != self.selected_square:
-                move_to_make = self.valid_moves[coords]
-                self._execute_move(move_to_make)
+        if not self.is_dragging:
+            return
+
+        mouse_pos = pygame.mouse.get_pos()
+        coords = self._get_board_pos(mouse_pos)
+
+        # released outside the board or on an invalid square
+        if not coords:
+            self._deselect()
+            return
+
+        # user released on a valid destination square
+        if coords in self.valid_moves and coords != self.selected_square:
+            self._execute_move(self.valid_moves[coords])
+            return
+
+        # user released on the same square they started on
+        if coords == self.selected_square:
+            if self.clicked_selected:
+                self._deselect()
+            else:
+                self.is_dragging = False
+                self.drag_data = None
+            return
+
+        self._deselect()
 
     def _execute_move(self, move):
         is_capture = self.board.move_piece(move)
@@ -260,13 +281,13 @@ class ChessGame:
                     self.screen.blit(lbl, (x + pad, y + self.sq_size - lbl.get_height() - pad))
 
     def _draw_hints(self):
-        for (r, c) in self.valid_moves:
-            dr = 7 - r if self.flip_view else r
-            dc = 7 - c if self.flip_view else c
+        for pos in self.valid_moves.keys():
+            dr = 7 - pos[0] if self.flip_view else pos[0]
+            dc = 7 - pos[1] if self.flip_view else pos[1]
             x = self.board_x + dc * self.sq_size
             y = self.board_y + dr * self.sq_size
             
-            target = self.board.get_piece_at(r, c)
+            target = self.board.get_piece_at(pos)
             s = pygame.Surface((self.sq_size, self.sq_size), pygame.SRCALPHA)
             
             if not target:
@@ -288,9 +309,9 @@ class ChessGame:
         
         for r in range(8):
             for c in range(8):
-                piece = self.board.get_piece_at(r, c)
+                piece = self.board.get_piece_at((r, c))
                 if piece:
-                    if self.is_dragging and self.drag_piece_data['pos'] == (r, c): continue
+                    if self.is_dragging and self.drag_data['pos'] == (r, c): continue
                     
                     dr = 7 - r if self.flip_view else r
                     dc = 7 - c if self.flip_view else c
@@ -308,8 +329,8 @@ class ChessGame:
                     else:
                         if img: self.screen.blit(img, (x, y))
 
-        if self.is_dragging and self.drag_piece_data:
-            piece = self.drag_piece_data['symbol']
+        if self.is_dragging and self.drag_data:
+            piece = self.drag_data['symbol']
             img = self.assets.get_image(piece)
             if img:
                 rect = img.get_rect(center=(mx, my))
