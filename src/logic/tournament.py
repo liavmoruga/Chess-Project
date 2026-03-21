@@ -4,7 +4,7 @@ import multiprocessing
 import chess
 from src.logic.board import Board
 
-def play_game(bot1, bot2, bot1_white, make_dict=False):
+def play_game(bot1, bot2, bot1_white, save_dict=False):
     board = Board()
 
     white_bot = bot1 if bot1_white else bot2
@@ -13,7 +13,7 @@ def play_game(bot1, bot2, bot1_white, make_dict=False):
     white_bot.set_color(chess.WHITE)
     black_bot.set_color(chess.BLACK)
     
-    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if make_dict else []
+    game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if save_dict else []
     
     while not board.is_game_over():
         if board.is_turn:
@@ -24,8 +24,9 @@ def play_game(bot1, bot2, bot1_white, make_dict=False):
         if move is None:
             break
         
-        board.move_piece(move[0], move[1])
-        if make_dict:
+        board.move_piece(move)
+
+        if save_dict:
             game_fens.append(board.engine.fen())
     
     # in the chess library: 1-0 = white wins, 0-1 = black wins, 1/2-1/2 = draw
@@ -49,9 +50,8 @@ class Tournament:
         self.bot1_name = bot1.__class__.__name__
         self.bot2_name = bot2.__class__.__name__
         self.amount = amount
-        self.mt_dict = {}
         
-    def run(self, make_dict=False):
+    def run(self, save_dict):
         bot1_score = 0.0
         bot2_score = 0.0
         bot1_wins = 0
@@ -62,13 +62,12 @@ class Tournament:
         games_config = []
         for i in range(self.amount):
             bot1_is_white = (i < self.amount / 2)
-            games_config.append((self.bot1, self.bot2, bot1_is_white, make_dict))
+            games_config.append((self.bot1, self.bot2, bot1_is_white, save_dict))
             
         start_time = time.time()
         num_cores = multiprocessing.cpu_count()
-        
-        # temporary dictionary
-        temp_dict = {} 
+
+        dictionary = {} 
         
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_cores) as executor:
             future_to_game = {executor.submit(play_game_wrapper, config): config for config in games_config}
@@ -88,12 +87,12 @@ class Tournament:
                         
                 completed_games += 1
                 
-                if make_dict:
+                if save_dict:
                     for fen in game_fens:
-                        if fen not in temp_dict:
-                            temp_dict[fen] = [0, 0]
-                        temp_dict[fen][0] += fen_score
-                        temp_dict[fen][1] += 1
+                        if fen not in dictionary:
+                            dictionary[fen] = [0, 0]
+                        dictionary[fen][0] += fen_score
+                        dictionary[fen][1] += 1
                 
                 self._print_progress(completed_games, bot1_score, bot2_score, draws)
 
@@ -114,9 +113,11 @@ class Tournament:
             print("WINNER: Tie!")
         print("=" * 50)
 
-        if make_dict:
-            for fen, (total_score, count) in temp_dict.items():
-                self.mt_dict[fen] = (total_score / count, count)
+        if save_dict:
+            final = {}
+            for fen, (total_score, count) in dictionary.items():
+                final[fen] = total_score / count
+            return final
         
 
 

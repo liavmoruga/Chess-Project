@@ -188,7 +188,7 @@ class ChessGame:
         running = True
         while running:
             # check turn
-            is_white = self.board.is_turn
+            is_white = self.board.is_turn()
             current_agent = self.white_agent if is_white else self.black_agent
             
             # event loop
