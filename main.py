@@ -6,20 +6,24 @@ import pickle
 
 def main(num):
     if num == 1:
-        g = ChessGame(white_agent=None, black_agent=SmartBot(3))
+        g = ChessGame(white_agent=MaterialBot(3, 2, 0.5), black_agent=MaterialBot(3, 2, 0.5))
         g.run()
 
     elif num == 2:
-        t = Tournament(MaterialBot(3), RandomBot(), 100)
-        mt = t.run(False)
-        # with open("mt.pkl", 'wb') as file:
-        #     pickle.dump(mt, file)
+        t = Tournament(SmartBot(2), MaterialBot(2), 25)
+        t.run(False)
+
+    elif num == 3:
+        t = Tournament(MaterialBot(2, 3, 0.5), MaterialBot(2, 3, 0.5), 10000)
+        mt = t.run(True)
+        with open("mt.pkl", 'wb') as file:
+            pickle.dump(mt, file)
 
 
 
 
 if __name__ == "__main__":
-    main(1)
+    main(2)
 
-#make a place to store pkl and keras
-# make the bots classes stateless / static and they take as an input a color so they can work in multiple proccesses
+
+# fix large files and importing

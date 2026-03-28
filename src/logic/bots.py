@@ -19,52 +19,66 @@ class RandomBot(Agent):
         
         return move
 
-
-
-
-
-
-
-
-
-
 class MinimaxBot(Agent):
-    def __init__(self, func, depth):
+    def __init__(self, func, depth, k=1, threshold=0.0):
         super().__init__()
         self.func = func
         self.depth = depth
+        self.k = k
+        self.threshold = threshold
 
     def get_move(self, board_obj):
         board = board_obj.engine.copy()
         
+        # Dynamically get the color
+        bot_color = board.turn 
+        
         legal_moves = list(board.legal_moves)
         if not legal_moves:
             return None
+            
         legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
-
-        best_move = legal_moves[0]
-        best_value = -float("inf") if self.color == chess.WHITE else float("inf")
 
         alpha = -float("inf")
         beta = float("inf")
+        move_scores = []
 
+        # Evaluate all root moves to find the Top-K
         for move in legal_moves:
             board.push(move)
-            value = self.minimax(board, self.depth - 1, alpha, beta, not (self.color == chess.WHITE))
+            value = self.minimax(board, self.depth - 1, alpha, beta, not (bot_color == chess.WHITE))
             board.pop()
             
-            if self.color == chess.WHITE:
-                if value > best_value:
-                    best_value = value
-                    best_move = move
-                alpha = max(alpha, best_value)
+            move_scores.append((move, value))
+            
+            # Maintain standard alpha-beta pruning at the root
+            if bot_color == chess.WHITE:
+                alpha = max(alpha, value)
             else:
-                if value < best_value:
-                    best_value = value
-                    best_move = move
-                beta = min(beta, best_value)
-        
-        return best_move
+                beta = min(beta, value)
+
+        # Sort moves: White wants highest scores, Black wants lowest scores
+        if bot_color == chess.WHITE:
+            move_scores.sort(key=lambda x: x[1], reverse=True)
+        else:
+            move_scores.sort(key=lambda x: x[1])
+
+        best_score = move_scores[0][1]
+        valid_moves = []
+
+        # Filter moves that fall within the acceptable threshold
+        for move, score in move_scores:
+            # Explicitly catch exact matches first to bypass 'nan' math on infinities
+            if score == best_score:
+                valid_moves.append(move)
+            elif abs(best_score - score) <= self.threshold:
+                valid_moves.append(move)
+            else:
+                break # The list is sorted, so once we drop below threshold, we can stop
+
+        # Take the Top-K from the filtered list and pick randomly
+        top_k_moves = valid_moves[:self.k]
+        return random.choice(top_k_moves)
 
 
     def minimax(self, board, depth, alpha, beta, search_max):
@@ -113,20 +127,6 @@ class MinimaxBot(Agent):
             return min_value
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def evaluate_material(engine):
     piece_values = {
         chess.PAWN: 1,
@@ -135,44 +135,43 @@ def evaluate_material(engine):
         chess.ROOK: 5,
         chess.QUEEN: 9
     }
+    
+    # 64-square map granting fractional points for controlling the center
+    # Indexes match python-chess squares (0 = A1, 63 = H8)
+    center_bonus = [
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0,
+        0.0, 0.0, 0.1, 0.2, 0.2, 0.1, 0.0, 0.0,
+        0.0, 0.0, 0.1, 0.2, 0.2, 0.1, 0.0, 0.0,
+        0.0, 0.0, 0.1, 0.1, 0.1, 0.1, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    ]
+
     score = 0
     for piece_type, value in piece_values.items():
-        score += len(engine.pieces(piece_type, chess.WHITE)) * value
-        score -= len(engine.pieces(piece_type, chess.BLACK)) * value
+        # Add value + center bonus for white pieces
+        for square in engine.pieces(piece_type, chess.WHITE):
+            score += value + center_bonus[square]
+            
+        # Subtract value + center bonus for black pieces
+        for square in engine.pieces(piece_type, chess.BLACK):
+            score -= (value + center_bonus[square])
+            
     return score
 
 class MaterialBot(MinimaxBot):
-    def __init__(self, depth):
-        super().__init__(evaluate_material, depth)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # Pass k and threshold to the parent class
+    def __init__(self, depth, k=1, threshold=0.0):
+        super().__init__(evaluate_material, depth, k, threshold)
 
 
 try:
     model = tf.keras.models.load_model('evaluator.keras')
 except Exception as e:
     print("Warning: could not load evaluator.keras")
-    model_model = None
+    model = None
 
 def evaluate_model(engine):
     if model is None:
@@ -183,5 +182,6 @@ def evaluate_model(engine):
     return float(score)
 
 class SmartBot(MinimaxBot):
-    def __init__(self, depth):
-        super().__init__(evaluate_model, depth)
+    # Pass k and threshold to the parent class
+    def __init__(self, depth, k=1, threshold=0.0):
+        super().__init__(evaluate_model, depth, k, threshold)

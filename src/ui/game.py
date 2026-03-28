@@ -49,10 +49,6 @@ class ChessGame:
         self.white_agent = white_agent
         self.black_agent = black_agent
         
-        # set agent colors
-        if self.white_agent: self.white_agent.set_color(chess.WHITE)
-        if self.black_agent: self.black_agent.set_color(chess.BLACK)
-        
         # view settings
         self.flip_view = False
         # auto-flip if human plays black (white is bot, black is human)
@@ -188,7 +184,7 @@ class ChessGame:
         running = True
         while running:
             # check turn
-            is_white = self.board.is_turn()
+            is_white = self.board.is_white_turn()
             current_agent = self.white_agent if is_white else self.black_agent
             
             # event loop

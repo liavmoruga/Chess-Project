@@ -10,13 +10,12 @@ def play_game(bot1, bot2, bot1_white, save_dict=False):
     white_bot = bot1 if bot1_white else bot2
     black_bot = bot2 if bot1_white else bot1
     
-    white_bot.set_color(chess.WHITE)
-    black_bot.set_color(chess.BLACK)
     
     game_fens = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"] if save_dict else []
     
     while not board.is_game_over():
-        if board.is_turn:
+        # FIXED: Added parentheses to properly evaluate the method!
+        if board.is_white_turn():
             move = white_bot.get_move(board)
         else:
             move = black_bot.get_move(board)
@@ -61,7 +60,7 @@ class Tournament:
         
         games_config = []
         for i in range(self.amount):
-            bot1_is_white = (i < self.amount / 2)
+            bot1_is_white = (i % 2 == 0)
             games_config.append((self.bot1, self.bot2, bot1_is_white, save_dict))
             
         start_time = time.time()
@@ -94,7 +93,7 @@ class Tournament:
                         dictionary[fen][0] += fen_score
                         dictionary[fen][1] += 1
                 
-                self._print_progress(completed_games, bot1_score, bot2_score, draws)
+                self._print_progress(completed_games, bot1_wins, bot2_wins, draws)
 
         print("\n\n\n" + "=" * 50)
         print("RESULTS:\n")
@@ -128,14 +127,14 @@ class Tournament:
 
 
 
-    def _print_progress(self, completed, score1, score2, draws):
+    def _print_progress(self, completed, bot1_wins, bot2_wins, draws):
         if self.amount == 0:
             return
         percent = (completed / self.amount) * 100
         length = 30
         filled_length = int(length * completed // self.amount)
         bar = '█' * filled_length + '-' * (length - filled_length)
-        print(f"\rProgress: |{bar}| {percent:.2f}% | {self.bot1_name}: {score1} | Draws: {draws} | {self.bot2_name}: {score2} |", end="", flush=True)
+        print(f"\rProgress: |{bar}| {percent:.2f}% | {self.bot1_name} wins: {bot1_wins} | Draws: {draws} | {self.bot2_name} wins: {bot2_wins} |", end="", flush=True)
 
     def _print_results_bar(self, bot1_wins, bot2_wins, draws):
         bar_length = 50

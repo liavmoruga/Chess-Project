@@ -49,8 +49,7 @@ class Board:
         is_white_piece = piece_symbol.isupper()
         return is_white_piece == self.engine.turn
 
-    def is_turn(self):
-        # returns true if it is white's turn, false if black
+    def is_white_turn(self):
         return self.engine.turn
 
     def is_game_over(self):
