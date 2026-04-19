@@ -23,7 +23,4 @@ def main(num):
 
 
 if __name__ == "__main__":
-    main(2)
-
-
-# fix large files and importing
+    main(1)
